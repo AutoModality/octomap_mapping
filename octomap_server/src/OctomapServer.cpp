@@ -130,6 +130,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
 
 
   // initialize octomap object & params
+  // TODO ED ADD MORE PARAMETERS
   m_octree = new OcTreeT(m_res);
   m_octree->setProbHit(probHit);
   m_octree->setProbMiss(probMiss);
@@ -434,7 +435,8 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
       }
     }
   }
-
+// TODO ED
+// OCTO 1 x
   // mark free cells only if not seen occupied in this cloud
   for(KeySet::iterator it = free_cells.begin(), end=free_cells.end(); it!= end; ++it){
     if (occupied_cells.find(*it) == occupied_cells.end()){
