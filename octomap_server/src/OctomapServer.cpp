@@ -186,6 +186,8 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   dynamic_reconfigure::Server<OctomapServerConfig>::CallbackType f;
   f = boost::bind(&OctomapServer::reconfigureCallback, this, _1, _2);
   m_reconfigureServer.setCallback(f);
+
+  ROS_INFO("OCTOMAP SERVER INITIALIZED");
 }
 
 OctomapServer::~OctomapServer(){
@@ -261,7 +263,7 @@ bool OctomapServer::openFile(const std::string& filename){
 }
 
 void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud){
-  ros::WallTime startTime = ros::WallTime::now();
+  ros::Time startTime = ros::Time::now();
 
 
   //
@@ -348,14 +350,22 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
 
   insertScan(sensorToWorldTf.getOrigin(), pc_ground, pc_nonground);
 
-  double total_elapsed = (ros::WallTime::now() - startTime).toSec();
-  ROS_DEBUG("Pointcloud insertion in OctomapServer done (%zu+%zu pts (ground/nonground), %f sec)", pc_ground.size(), pc_nonground.size(), total_elapsed);
+//  double total_elapsed = (ros::WallTime::now() - startTime).toSec();
+//  ROS_DEBUG("Pointcloud insertion in OctomapServer done (%zu+%zu pts (ground/nonground), %f sec)", pc_ground.size(), pc_nonground.size(), total_elapsed);
+
+  ros::Time cloud_done = ros::Time::now();
 
   publishAll(cloud->header.stamp);
+
+  double cloud_time = cloud_done.toSec() - startTime.toSec();
+  double publish_time = ros::Time::now().toSec() - cloud_done.toSec();
+  ROS_INFO("Pointcloud insertion[%0.4f] publish[%0.4f] (%zu+%zu pts (ground/nonground))", cloud_time, publish_time, pc_ground.size(), pc_nonground.size());
 }
 
 void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCloud& ground, const PCLPointCloud& nonground){
   point3d sensorOrigin = pointTfToOctomap(sensorOriginTf);
+
+//  printf("INSERTING SCAN\n");
 
   if (!m_octree->coordToKeyChecked(sensorOrigin, m_updateBBXMin)
     || !m_octree->coordToKeyChecked(sensorOrigin, m_updateBBXMax))
@@ -399,11 +409,22 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
 
       // free cells
       if (m_octree->computeRayKeys(sensorOrigin, point, m_keyRay)){
+//DDD    	  printf("FREERAY  size[%lu]\n", m_keyRay.size());
+//    	  unsigned i = 0;
+//    	  for (KeyRay::iterator it = m_keyRay.begin(); it != m_keyRay.end(); ++it, i++)
+//    	  {
+//    		  printf("RAY voxel[%u] : [%u,  %u,  %u]\n", i, it->k[0], it->k[1], it->k[2]);
+//    	  }
+//    	  printf("\n");
+//
+
         free_cells.insert(m_keyRay.begin(), m_keyRay.end());
       }
       // occupied endpoint
       OcTreeKey key;
       if (m_octree->coordToKeyChecked(point, key)){
+//DDD		  printf("RAY voxel[OCCUPIED] : [%u,  %u,  %u]\n", key.k[0], key.k[1], key.k[2]);
+
         occupied_cells.insert(key);
 
         updateMinKey(key, m_updateBBXMin);
@@ -440,12 +461,15 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
   // mark free cells only if not seen occupied in this cloud
   for(KeySet::iterator it = free_cells.begin(), end=free_cells.end(); it!= end; ++it){
     if (occupied_cells.find(*it) == occupied_cells.end()){
+
+//    	printf("  VOXEL UPDATE [EMPTY] key[%u,  %u,  %u]\n", it->k[0], it->k[1], it->k[2]);
       m_octree->updateNode(*it, false);
     }
   }
 
   // now mark all occupied cells:
   for (KeySet::iterator it = occupied_cells.begin(), end=occupied_cells.end(); it!= end; it++) {
+//  	printf("  VOXEL UPDATE [OCCUPIED] key[%u,  %u,  %u]\n", it->k[0], it->k[1], it->k[2]);
     m_octree->updateNode(*it, true);
   }
 

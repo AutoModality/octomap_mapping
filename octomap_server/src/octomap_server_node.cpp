@@ -57,6 +57,8 @@ int main(int argc, char** argv){
   OctomapServer server;
   ros::spinOnce();
 
+  ROS_INFO("OCTOMAP SERVER STARTED");
+
   if (argc == 2){
     mapFilename = std::string(argv[1]);
   }
