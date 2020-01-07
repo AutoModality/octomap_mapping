@@ -1,0 +1,13 @@
+Source: ros-kinetic-am-octomap-mapping
+Section: unknown
+Priority: extra
+Maintainer: AutoModality DevOps <dev@automodality.com>
+Build-Depends: cmake, debhelper (>=9)
+Standards-Version: 3.9.6
+Homepage: <insert the upstream URL, if relevant>
+
+Package: ros-kinetic-am-octomap-mapping
+Architecture: any
+Multi-Arch: foreign
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description:  Utilites for AM based ROs packages
